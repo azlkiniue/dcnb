@@ -11,8 +11,8 @@ dcnb
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.cov
 
-# Dependency directories (remove the comment below if you use Go modules)
-vendor/
+# Temporary directories
+tmp/
 
 # Go workspace file
 go.work

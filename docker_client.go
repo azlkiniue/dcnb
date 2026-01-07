@@ -67,7 +67,7 @@ func FindAutoNamedContainers(ctx context.Context, cli DockerClient) ([]container
 	return found, nil
 }
 
-// CleanAutoNamedContainers deletes containers whose names come from the moby generator.
+// CleanAutoNamedContainers deletes containers whose names are auto-generated.
 func CleanAutoNamedContainers(ctx context.Context, cli DockerClient) ([]string, error) {
 	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {

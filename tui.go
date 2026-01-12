@@ -32,6 +32,9 @@ type cleanupModel struct {
 	removed    []string
 	err        error
 	state      cleanupState
+	width      int
+	height     int
+	scrollPos  int
 }
 
 func NewCleanupModel(ctx context.Context, cli DockerClient, candidates []container.Summary) cleanupModel {
@@ -49,6 +52,10 @@ func (m cleanupModel) Init() tea.Cmd { // no async work needed at start
 
 func (m cleanupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
 	case tea.KeyMsg:
 		return m.handleKey(msg.String())
 	case cleanupResultMsg:
@@ -69,6 +76,22 @@ func (m cleanupModel) handleKey(key string) (tea.Model, tea.Cmd) {
 	case "n":
 		m.state = stateCancelled
 		return m, tea.Quit
+	case "up":
+		if m.scrollPos > 0 {
+			m.scrollPos--
+		}
+		return m, nil
+	case "down":
+		// Calculate maximum scroll position
+		// + 7 accounts for header (1) + border (3) + scroll status (1) + help text (2) [1312]
+		maxScroll := len(m.candidates) - m.height + 7
+		if maxScroll < 0 {
+			maxScroll = 0
+		}
+		if m.scrollPos < maxScroll {
+			m.scrollPos++
+		}
+		return m, nil
 	case "y", "enter":
 		if m.state != stateIdle {
 			return m, nil
@@ -115,7 +138,22 @@ func (m cleanupModel) View() string {
 		}).
 		Headers("#", "Name", "Image")
 
-	for i, c := range m.candidates {
+	// Calculate how many rows can fit in the terminal
+	// height - header (1) - border (3) - scroll status (1) - help text (2) [1312]
+	availableHeight := m.height - 7
+	if availableHeight < 1 {
+		availableHeight = 1
+	}
+
+	// Determine visible range
+	endIdx := m.scrollPos + availableHeight
+	if endIdx > len(m.candidates) {
+		endIdx = len(m.candidates)
+	}
+
+	// Render only visible rows
+	for i := m.scrollPos; i < endIdx; i++ {
+		c := m.candidates[i]
 		name := primaryContainerName(c.Names)
 		image := c.Image
 		if len(image) > 40 {
@@ -127,6 +165,14 @@ func (m cleanupModel) View() string {
 	b.WriteString(t.Render())
 
 	b.WriteString("\n")
+
+	// Show scroll indicator if there are more items
+	if len(m.candidates) > availableHeight {
+		scrollInfo := fmt.Sprintf("(%d-%d of %d) Use ↑↓ to scroll", m.scrollPos+1, endIdx, len(m.candidates))
+		scrollStyle := lipgloss.NewStyle().Foreground(color("243"))
+		b.WriteString(scrollStyle.Render(scrollInfo))
+		b.WriteString("\n")
+	}
 
 	switch m.state {
 	case stateIdle:

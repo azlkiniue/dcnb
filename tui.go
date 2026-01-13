@@ -84,10 +84,7 @@ func (m cleanupModel) handleKey(key string) (tea.Model, tea.Cmd) {
 	case "down":
 		// Calculate maximum scroll position
 		// + 7 accounts for header (1) + border (3) + scroll status (1) + help text (2) [1312]
-		maxScroll := len(m.candidates) - m.height + 7
-		if maxScroll < 0 {
-			maxScroll = 0
-		}
+		maxScroll := max(len(m.candidates)-m.height+7, 0)
 		if m.scrollPos < maxScroll {
 			m.scrollPos++
 		}
@@ -140,16 +137,10 @@ func (m cleanupModel) View() string {
 
 	// Calculate how many rows can fit in the terminal
 	// height - header (1) - border (3) - scroll status (1) - help text (2) [1312]
-	availableHeight := m.height - 7
-	if availableHeight < 1 {
-		availableHeight = 1
-	}
+	availableHeight := max(m.height-7, 1)
 
 	// Determine visible range
-	endIdx := m.scrollPos + availableHeight
-	if endIdx > len(m.candidates) {
-		endIdx = len(m.candidates)
-	}
+	endIdx := min(m.scrollPos+availableHeight, len(m.candidates))
 
 	// Render only visible rows
 	for i := m.scrollPos; i < endIdx; i++ {

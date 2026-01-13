@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
@@ -93,11 +94,5 @@ func TestCleanAutoNamedContainersAggregatesErrors(t *testing.T) {
 }
 
 func containsID(ids []string, target string) bool {
-	for _, id := range ids {
-		if id == target {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(ids, target)
 }
